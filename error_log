@@ -1,0 +1,2 @@
+[07-Sep-2020 19:40:05 UTC] PHP Warning:  curl_errno(): 2 is not a valid cURL handle resource in /home2/n8geeks/public_html/dev/projects/findapet/index.php on line 215
+[07-Sep-2020 19:40:24 UTC] PHP Warning:  curl_errno(): 2 is not a valid cURL handle resource in /home2/n8geeks/public_html/dev/projects/findapet/index.php on line 213

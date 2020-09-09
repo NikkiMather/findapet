@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Find a Pet</title>
+
+    <meta charset="utf-8"/>
+
+    <style type="text/css">
+        body {
+            margin-left: auto;
+            margin-right: auto;
+            max-width: 40em;
+            width: 88%;
+        }
+    </style>
+
+    <link rel="stylesheet" href="../findapet/dist/css/theme.css">
+
+    <script src="https://kit.fontawesome.com/56d59354d9.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<header class="header">
+    <div class="container">
+        <h1>Find your new forever pet</h1>
+        <p>FindAPet has helped over <strong>96,000</strong> pets get successfully re-homed since 1974</p>
+    </div>
+</header>
+
+<div class="content">
+    <div class="container">
+        <div class="row">
+            <div class="filters-sidebar">
+                <div class="filters">
+                    <div class="filter">
+                        <h3>Pet Type:</h3>
+                        <div data-filter-type="Type" class="custom-select">
+                            <div class="custom-select-default">
+                                <div class="default-text">
+                                    <div class="selection-text">Any</div>
+                                    <div class="clear-filters">Clear</div>
+                                </div>
+                            </div>
+                            <div class="custom-select-options">
+                                <div class="custom-select-options-inner pet-type">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter">
+                        <h3>Pet Age:</h3>
+                        <div data-filter-type="Age" class="custom-select">
+                            <div class="custom-select-default">
+                                <div class="default-text">
+                                    <div class="selection-text">Any</div>
+                                    <div class="clear-filters">Clear</div>
+                                </div>
+                            </div>
+                            <div class="custom-select-options">
+                                <div class="custom-select-options-inner pet-age">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <ul id="app"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<script>
+    let petAgeArray = [];
+    let petTypeArray = [];
+    let petFilterTypesArray = [];
+    let petFilterSelectedOptions = [];
+    let selectedOptions = 0;
+
+    let apiKey;
+
+    if (localStorage.getItem('key') !== null) {
+        apiKey = localStorage.getItem('key');
+
+        console.log(apiKey);
+    }
+
+    else {
+        refreshAccessToken(apiKey);
+    }
+
+    const ul = document.getElementById('app');
+
+    checkTokenExpiry(apiKey);
+
+    function fetchData(apiKey) {
+        fetch('https://api.petfinder.com/v2/animals?limit=40', {
+            headers: {
+                authorization: 'Bearer ' + apiKey
+            }
+        })
+        .then((resp) => resp.json())
+        .then(function(data) {
+
+            runScript(data);
+
+        }).catch(function(error) {
+
+        console.log(error);
+
+        });
+    }
+
+    function runScript(data) {
+        data.animals.map(function(pet) {
+            // console.log(pet);
+            if (!petAgeArray.includes(pet.age)) {
+                petAgeArray.push(pet.age);
+            }
+
+            if (!petTypeArray.includes(pet.type)) {
+                petTypeArray.push(pet.type);
+            }
+
+        });
+
+        let options = petAgeArray.map((element) => {
+            return `<div class="option">${element} <div class="filter-icon"></div></div>`;
+        });
+
+        document.querySelector('.pet-age').innerHTML = options.join('');
+
+        let petTypeOptions = petTypeArray.map((element) => {
+            return `<div class="option">${element} <div class="filter-icon"></div></div>`;
+        });
+
+        document.querySelector('.pet-type').innerHTML = petTypeOptions.join('');
+
+        var htmlOutput = data.animals.map(function(pet) {
+            return `
+                <li data-age="${pet.age}"
+                data-type="${pet.type}">
+                <h2>${pet.name}</h2>
+                <br/> Age: ${pet.age}
+                <br/> Type: ${pet.type}</li>
+            `
+
+        });
+
+        ul.innerHTML = htmlOutput.join('');
+
+        let filterType;
+
+        [...document.querySelectorAll('.custom-select')].forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                if (e.target.className === 'custom-select-default') {
+                    const child = e.target.parentNode.children[1];
+                    filterType = e.target.parentNode.getAttribute('data-filter-type');
+
+                    if (child.style.display == 'none' || child.style.display == '') {
+                        child.style.display = 'block';
+                    }
+
+                    else {
+                        child.style.display = 'none';
+                    }
+                }
+
+                if (e.target.classList.contains('option')) {
+                    var filterSelection = e.target.textContent.trim();
+                    var optionBoxes = document.querySelectorAll('.custom-select-options');
+                    var options = document.querySelectorAll('.option');
+
+                    optionBoxes.forEach(optionsBox => optionsBox.style.display = 'none');
+
+                    e.target.classList.toggle('filter-active');
+
+                    [...options].forEach((element) => {
+                        if (element.classList.contains('filter-active') && !petFilterSelectedOptions.includes(element.textContent.trim())) {
+                            petFilterSelectedOptions.push(element.textContent.trim());
+                        }
+                    });
+
+                    document.querySelector('.selection-text').innerHTML = selectedOptions;
+
+                    changeFilter(filterSelection, filterType);
+                }
+            });
+        });
+
+        function changeFilter(filterSelection, filterType) {
+
+            var li = document.querySelectorAll('#app li');
+
+            li.forEach(function(listingAges) {
+                let dataType = listingAges.getAttribute('data-' + filterType);
+
+                for (let i = 0; i < petFilterSelectedOptions.length; i++) {
+
+                    if (petFilterSelectedOptions[i] !== dataType) {
+                        listingAges.style.display = 'none';
+                    }
+
+                    else {
+                        listingAges.style.display = 'block';
+                    }
+                }
+            });
+        }
+    }
+
+    function refreshAccessToken(apiKey) {
+        fetch("https://api.petfinder.com/v2/oauth2/token", {
+            body: "grant_type=client_credentials&client_id=Z9mg8TplzPQfmSw0t1eGTllzwsEq2EkRXl9Zx0UKTVLHp1mTfs&client_secret=bCqzBe9Apsc0emaGxLVdLuwbH9A6AryrgYw49LOj",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            method: "POST"
+        })
+        .then((resp) => resp.json())
+        .then(function(data) {
+            apiKey = data.access_token;
+
+            localStorage.setItem('key', apiKey);
+
+            fetchData(apiKey);
+
+            console.log('new api key generated: ' + apiKey);
+        });
+    }
+
+    function checkTokenExpiry(apiKey) {
+        var hours = 1;
+        var now = new Date().getTime();
+        var setupTime = localStorage.getItem('setupTime');
+        if (setupTime == null) {
+            refreshAccessToken(apiKey);
+            localStorage.setItem('setupTime', now);
+        } else {
+            if(now-setupTime > hours*60*60*1000) {
+                refreshAccessToken(apiKey);
+                localStorage.removeItem('setupTime');
+                localStorage.setItem('setupTime', now);
+            }
+        }
+
+    }
+
+</script>
+
+</body>
+</html>
