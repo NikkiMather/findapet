@@ -1,4 +1,3 @@
-<script>
 (function() {
     let petAgeArray = [];
     let petTypeArray = [];
@@ -210,4 +209,3 @@
 
     }
 })();
-</script>
