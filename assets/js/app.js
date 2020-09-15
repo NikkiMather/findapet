@@ -4,6 +4,9 @@
     let petFilterTypesArray = [];
     let petFilterSelectedOptions = [];
     let selectedOptions = 0;
+    let parentFilterType;
+
+    const ul = document.getElementById('app');
 
     /*
         Check if we have an API access token stored in localStorage, if not
@@ -21,8 +24,6 @@
     else {
         refreshAccessToken(apiKey);
     }
-
-    const ul = document.getElementById('app');
 
     /*
         Fetch data from the PetFinder API
@@ -92,7 +93,22 @@
 
         ul.innerHTML = htmlOutput.join('');
 
+        /*
+            Loop over every filter and get data-filter-type value and store in
+            an object, then loop over each .option inside of the filter and add
+            those to the object too
+         */
+
         let filterType;
+
+        var listFilterTypes = document.querySelectorAll('.filters .filter');
+        var listFilterTypesObj = {};
+
+        for (let i = 0; i < listFilterTypes.length; i++) {
+
+            let allOptions = listFilterTypes[i].querySelectorAll('.option');
+
+        }
 
         /*
             Describe what is going on here
@@ -100,6 +116,7 @@
 
         [...document.querySelectorAll('.custom-select')].forEach(function(item) {
             item.addEventListener('click', function(e) {
+
                 if (e.target.className === 'custom-select-default') {
                     const child = e.target.parentNode.children[1];
                     filterType = e.target.parentNode.getAttribute('data-filter-type');
@@ -114,52 +131,134 @@
                 }
 
                 if (e.target.classList.contains('option')) {
-                    var filterSelection = e.target.textContent.trim();
-                    var optionBoxes = document.querySelectorAll('.custom-select-options');
-                    var options = document.querySelectorAll('.option');
 
-                    optionBoxes.forEach(optionsBox => optionsBox.style.display = 'none');
+                    var filterSelection = e.target.textContent.trim();
+                    var options = document.querySelectorAll('.option');
 
                     e.target.classList.toggle('filter-active');
 
-                    [...options].forEach((element) => {
-                        if (element.classList.contains('filter-active') && !petFilterSelectedOptions.includes(element.textContent.trim())) {
-                            petFilterSelectedOptions.push(element.textContent.trim());
+                    if (!petFilterSelectedOptions.includes(filterSelection)) {
+                        petFilterSelectedOptions.push(filterSelection);
+                    }
+
+                    /*
+                        Check how many filter options are selected and update the filter
+                        .selection-text to specify the number of selections a user has
+                        made on that specific filter
+                     */
+
+                    for (var i = 0; i < options.length; i++) {
+
+                        if (options[i].classList.contains('filter-active') && !petFilterSelectedOptions.includes(filterSelection)) {
+                            petFilterSelectedOptions.push(filterSelection);
+                            break;
                         }
-                    });
 
-                    document.querySelector('.selection-text').innerHTML = selectedOptions;
+                        else if (!options[i].classList.contains('filter-active') && petFilterSelectedOptions.includes(filterSelection)) {
+                            //.splice(petFilterSelectedOptions.indexOf(filterSelection), 1);
+                            break;
+                        }
 
-                    changeFilter(filterSelection, filterType);
+                    }
+
+                    setSelectionValue();
+                    changeFilter(petFilterSelectedOptions);
+
                 }
             });
         });
 
         /*
-            Once we have all of the data from the API, we check to
-            see if the selected filter matches any of the li's and if it
-            does, we show them and hide the others
-       */
+            When the filters are cleared, we remove all of the 'filter-active'
+            classes from any selected filter options. We also reset the
+            petFilterSelectedOptions object
+         */
 
-        function changeFilter(filterSelection, filterType) {
+        document.querySelector('.custom-select').addEventListener('click', function(e) {
+            if (e.target.className === 'clear-filters') {
 
-            var li = document.querySelectorAll('#app li');
+                let li = [...document.querySelectorAll('#app li')];
 
-            li.forEach(function(listingAges) {
-                let dataType = listingAges.getAttribute('data-' + filterType);
+                li.map(element => element.style.display = 'block');
 
-                for (let i = 0; i < petFilterSelectedOptions.length; i++) {
+                const options = [...this.querySelectorAll('.option')];
+                const selectionHtml = document.querySelector('.selection-text');
 
-                    if (petFilterSelectedOptions[i] !== dataType) {
-                        listingAges.style.display = 'none';
-                    }
+                var toHide = options.map(function(element) {
+                    return element.classList.remove('filter-active');
+                });
 
-                    else {
-                        listingAges.style.display = 'block';
-                    }
+                petFilterSelectedOptions = [];
+
+                setSelectionValue();
+            }
+        });
+
+        /*
+            When we select a filter option or we clear the filter,
+            we set the value of the default text in the dropdown to
+            show the user how many selections they have made, per filter
+         */
+
+        const setSelectionValue = function() {
+            const selectionHtml = document.querySelector('.selection-text');
+
+            if (petFilterSelectedOptions.length === 0) {
+                selectionHtml.innerHTML = 'Any';
+            } else if (petFilterSelectedOptions.length === 1) {
+                selectionHtml.innerHTML = petFilterSelectedOptions.length + ' Selection';
+            } else {
+                selectionHtml.innerHTML = petFilterSelectedOptions.length + ' Selections';
+            }
+        }
+    }
+
+    /*
+        Once we have all of the data from the API, we check to
+        see if the selected filter matches any of the li's and if it
+        does, we show them and hide the others
+    */
+
+    function changeFilter(petFilterSelectedOptions, filterType) {
+
+        let li = [...document.querySelectorAll('#app li')];
+
+        li.map(function(element) {
+
+            var elementAttributes = [];
+
+            elementAttributes.push(element.dataset.age);
+            elementAttributes.push(element.dataset.type);
+
+            petFilterSelectedOptions.map((element2) => {
+
+                let [ age, type ] = elementAttributes;
+
+                if (elementAttributes.indexOf(element2) !== -1) {
+                    element.style.display = 'block';
+                } else {
+                    element.style.display = 'none';
                 }
             });
-        }
+        });
+    }
+
+    /*
+        Check if the filter options are displaying, if they are
+        then hide on next click
+     */
+
+    document.querySelector('body').addEventListener('click', checkFilterVisibility);
+
+    function checkFilterVisibility(e) {
+
+        const options = [...document.querySelectorAll('.custom-select-options')];
+
+        options.map((element) => {
+            if (element.style.display === 'block' && e.target.className !== 'custom-select-default') {
+                element.style.display = 'none';
+            }
+        });
     }
 
     /*
@@ -179,6 +278,8 @@
             .then((resp) => resp.json())
             .then(function(data) {
                 apiKey = data.access_token;
+
+                localStorage.setItem('key', apiKey)
 
                 fetchData(apiKey);
 
